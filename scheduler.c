@@ -11,6 +11,7 @@
 // #define RR 3
 int start_num = 0;
 int finish_num = 0;
+int queue[1000], front_index = 0, end_index = 0;
 void schedule(int strategy,Process_Data *process, int process_num)
 {
 	if(strategy==0)
@@ -61,16 +62,28 @@ int get_next_process(Process_Data *process, int strategy, int last_index)
 	}
 	if(strategy==3)
 	{
-		int next_index;
-		next_index = (last_index + 1) % start_num;
-		for(int i = 0; i < start_num; i++)
+		if(front_index==end_index)
 		{
-			if(process[next_index].exec_time > 0)
-			{
-				return next_index;
-			}
-			next_index = (next_index + 1) % start_num;
+			return -1;
 		}
+		else
+		{
+			int next_index;
+			next_index=queue[front_index];
+			//fprintf(stderr, "%d\n",next_index);
+			front_index=(front_index+1)%1000;
+			return next_index;
+		}
+		// int next_index;
+		// next_index = (last_index + 1) % start_num;
+		// for(int i = 0; i < start_num; i++)
+		// {
+		// 	if(process[next_index].exec_time > 0)
+		// 	{
+		// 		return next_index;
+		// 	}
+		// 	next_index = (next_index + 1) % start_num;
+		// }
 	}
 	return -1;
 }
@@ -234,6 +247,10 @@ void RR(Process_Data *process, int process_num)
 	int time_now=0;
 	int running_index=-1;
 	int finish_time=-1;
+	for(int i=0;i<1000;i++)
+	{
+		queue[i]=-1;
+	}
 	while(1)
 	{
 		if(finish_num==process_num)
@@ -246,7 +263,14 @@ void RR(Process_Data *process, int process_num)
 			{
 				start_num++;
 				process[i].pid=fork_process(process[i]);
+				queue[end_index]=i;
+				end_index=(end_index+1)%1000;
 			}
+		}
+		if (finish_time==time_now && process[running_index].exec_time > 0)
+		{
+			queue[end_index]=running_index;
+			end_index=(end_index+1)%1000;
 		}
 		if(finish_num < start_num && finish_time <= time_now)
 		{
@@ -267,14 +291,18 @@ void RR(Process_Data *process, int process_num)
 		if(running_index >= 0)
 		{
 			process[running_index].exec_time --;
+			//fprintf(stderr, "process %d lefttime %d\n",running_index,process[running_index].exec_time);
 			if(process[running_index].exec_time == 0)
 			{
 				//fprintf(stderr, "finish P%d (pid = %d), time_now = %d\n", running_index+1, process[running_index].pid, time_now);				
 				finish_num ++;
 			}
-			if (finish_time==time_now)
-				if(process[running_index].exec_time > 0)
+			if (finish_time==time_now && process[running_index].exec_time > 0)
+			{
 					stop_process(process[running_index].pid);
+					// queue[end_index]=running_index;
+					// end_index=(end_index+1)%1000;
+			}
 		}
 
 	}
